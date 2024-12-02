@@ -1,2 +1,23 @@
 # Training
 Training material for workshops
+---
+title: "DNA methylation desing to discovery 2024"
+output: html_notebook
+author: Dr. Gilles Gasporoni, Dr. Thomas Hentrich, Nihit Aggarwal
+---
+
+### Day 1
+
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+Read the file 
+```{r}
+df.cars <- cars
+```
+
+Plot speed (mph) vs distance (ft) to stop the car
+
+```{r}
+plot(df.cars)
+```
