@@ -1,0 +1,429 @@
+---
+title-block-banner-color: "#697ddd"
+title: "DNA methylation desing to discovery 2024"
+output: html_notebook
+author: Dr. Gilles Gasporoni, Dr. Thomas Hentrich, Nihit Aggarwal
+number-sections: true
+format:
+  html:
+    toc: true
+    embed-resources: true
+    toc-location: right
+    number-sections: true
+---
+
+## Day 1
+
+### Setting up the environment
+
+#### Installing packages
+
+In this section, we will install RnBeads package from Bioconductor, essential for analyzing Infinium methylation arrays.
+
+```{r,eval=FALSE}
+# installing RnBeads 
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("FDb.InfiniumMethylation.hg19")
+
+source("http://rnbeads.org/data/install.R")
+```
+
+#### Loading packages
+
+we specify a list of essential R packages, including ggplot2, reshape2, RnBeads, and data.table, which are fundamental for data visualization and analysis in epigenetics studies. The lapply function is then used to load each package in the list, ensuring they are available for use in subsequent analyses.
+
+```{r}
+packages_to_load <- c("ggplot2","reshape2","RnBeads","data.table","pheatmap","RColorBrewer")
+lapply(packages_to_load, require, character.only=TRUE)
+
+```
+
+### Primary analysis
+
+#### Data and samplesheet preparation
+
+In this segment, we are setting up the file paths and directories necessary for handling DNA methylation data in our epigenetics workshop. The code defines the locations for the raw data (`idat.dir`), the output directory (`report.dir`), and the sample sheet (`sample.annotation`), preparing us to import and analyze the data effectively in subsequent steps.
+
+```{r}
+# preparing sample sheet and data import for selected samples 
+
+# set the working directory
+setwd("D:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/")
+
+# path to data.files
+idat.dir <- file.path("idat/")
+
+# outputPath
+report.dir <- "analysis_v4/"
+
+# samplesheet file path
+sample.annotation <- file.path("20241202_SampleSheet_SelectedSamples.txt")
+
+data.type<-"idat.dir"
+
+```
+
+We first use the `help("rnb.options")` function to display detailed information about configurable parameters available in the RnBeads package. Following this, we configure several RnBeads options, setting the genome assembly to "hg19," specifying the identifiers column as "SampleID," and defining the import table separator as a tab. Finally, we export these configurations to an XML format with improved readability using `rnb.options2xml(pretty=TRUE)`. This setup ensures our RnBeads analyses are tailored to our specific dataset and preferences.
+
+```{r}
+# get info on all available RnB parameters.
+help("rnb.options") 
+
+# setting rnbeads options
+rnb.options(assembly = "hg19")
+rnb.options(identifiers.column = "SampleID")
+rnb.options(import.table.separator = "\t")
+rnb.options2xml(pretty=TRUE)
+```
+
+#### RnBeads set
+
+The code initializes the RnBeads analysis by importing DNA methylation data and associated sample annotations from specified directories, subsequently storing the resulting RnBeads dataset object for further analysis.
+
+```{r}
+# import rnbead set
+rnbSet = rnb.run.import(data.source = c(idat.dir, sample.annotation), 
+                        data.type = data.type,
+                        dir.reports = report.dir)
+rnb = rnbSet$rnb.set
+```
+
+#### Features of RnBeads object
+
+In this section, we explore key features of the RnBeads dataset to understand its structure and contents. The code first displays the top entries of the sample sheet using `pheno(rnb)`, then extracts raw methylation values with `meth(rnb)`, and finally visualizes the methylation distribution for a specific sample using a histogram. \##### Inspecting Dataset Features
+
+```{r}
+# Let's inspect some features of our dataset
+
+# View Sample Sheet
+head(pheno(rnb))
+
+# Retrieve Raw Methylation Values
+mm <- meth(rnb)
+
+# Plot Raw Methylation Values Histogram
+hist(mm[,"Dnr13_F_77_CTRL_Glia"], col="steelblue", breaks=50)
+
+# Check if Regions are Summarized and How
+summarized.regions(rnb)
+
+```
+
+##### Working with Annotations
+
+```{r}
+# Inspect Available Annotation for Probes
+anno = rnb.annotation2data.frame(rnb.get.annotation("probes450"))
+head(anno)
+
+# View Annotation Available for Promoters
+annot.promoters <- annotation(rnb, type="promoters")
+head(annot.promoters)
+```
+
+##### Detailed Methylation Analysis
+
+```{r}
+# get methylation for promoters (on a subset of samples and promoters just for illustration)
+meth(rnb, type="promoters", row.names=TRUE, i=1:5, j=1:3)
+
+# inspect coverage (number of beads per probe)
+nbead <- covg(rnb, row.names=TRUE)
+nbead[1:5,1:3]
+
+# detection p-values
+pvals <- dpval(rnb, row.names=TRUE)
+
+```
+
+##### Diagnostic Plots
+
+```{r}
+# check control probes
+rnb.plot.control.boxplot(rnb)
+```
+```{r echo=TRUE, warning=FALSE}
+# some specific control
+rnb.plot.control.boxplot(rnb, "BISULFITE CONVERSION I")
+
+# Negative control boxplots are generated with the following command:
+rnb.plot.negative.boxplot(rnb)
+
+# barplot of a selected control probe
+control.meta.data <- rnb.get.annotation("controls450")
+ctrl.probe<-paste0(unique(control.meta.data[["Target"]])[2], ".1")
+rnb.plot.control.barplot(rnb, ctrl.probe)
+
+# access to full qc results
+qc_data = qc(rnb)
+```
+
+##### Genotyping and Additional Analysis
+
+```{r}
+#use some genotyping probes to check for genomic sample similarity
+snp.probes = anno[grep("rs", rownames(anno)), ]
+
+rnb.plot.snp.heatmap(rnb)
+#rnb.plot.snp.barplot(dataset = rnb, probeID = rownames(snp.probes) [2], writeToFile = TRUE)
+
+#set some options as desired before running the complete quality check module
+rnb.options(qc.snp.boxplot=TRUE)
+rnb.options(import.sex.prediction = TRUE)
+rnb.options(qc.cnv = TRUE) # calculate copy number variations
+```
+
+#### Quality check
+
+```{r}
+#see all available options
+help("rnb.options") #get info on all available RnB parameters.
+
+#run complete quality report with specific settings
+
+#QC
+rnb.options(qc.boxplots = TRUE)
+rnb.options(qc.barplots = TRUE)
+rnb.options(qc.negative.boxplot = TRUE)
+rnb.options(qc.snp.distances = TRUE)
+rnb.options(qc.snp.boxplot = TRUE)
+rnb.options(qc.snp.barplot = TRUE)
+rnb.options(qc.sample.batch.size = 50)
+rnb.options(qc.coverage.plots = FALSE)
+rnb.options(qc.coverage.threshold.plot = 1:10)
+rnb.options(qc.coverage.histograms = FALSE)
+rnb.options(qc.coverage.violins = FALSE)
+
+rnb.run.qc(rnb.set = rnb, dir.reports = report.dir) #this will takes some minutes
+```
+
+### Preprocessing
+
+The following R code outlines the preprocessing steps for DNA methylation data using the RnBeads package. It begins by backing up the original unprocessed dataset. Various filtering techniques are then applied to remove undesirable data points based on criteria such as CpG context, SNP presence, and data quality (e.g., missing or low-variability values). Each filtering step concludes with a check on the remaining data, ensuring the refined dataset is ready for further analysis.
+
+#### Filtering
+
+```{r}
+# preprocessing typically includes filtering of undesired datapoints (mostly sites) and data normalization
+rnb.unprocessed = rnb #first we store the unprocessed rnbeads object as a back-up
+#save.rnb.set(rnb.unprocessed, "/projects/researchers/jil/projects/deNBI/20241129_WS24/analysis/rnb/rnbSet_Unprocessed", archive = TRUE)
+
+nrow(meth(rnb.unprocessed)) # the number of sites in the unfiltered object
+
+#some examples of how sites to be removed from dataset
+# Remove probes outside of CpG context
+rnb.set.filtered <- rnb.execute.context.removal(rnb.set = rnb.unprocessed, contexts = NULL )$dataset
+nrow(meth(rnb.set.filtered)) # the number of CpG sites in the unfiltered object
+
+# SNP filtering allowing no SNPs in the probe sequence (range 3 bp)
+rnb.set.filtered <- rnb.execute.snp.removal(rnb.set = rnb.set.filtered, snp = "3")$dataset
+
+# Removal of CpG sites in the unfiltered object
+# that contain a SNP in the range of 3bp
+nrow(meth(rnb.set.filtered))
+
+# Remove CpGs on sex chromosomes
+rnb.set.filtered <- rnb.execute.sex.removal(rnb.set = rnb.set.filtered)$dataset
+nrow(meth(rnb.set.filtered))
+
+# Remove probes and samples based on a greedycut approach
+greedycut.results <- rnb.execute.greedycut(rnb.set = rnb.set.filtered, pval.threshold = 0.05)#$dataset
+to_remove = rownames(meth(object = rnb.set.filtered, row.names = TRUE)) [greedycut.results[["sites"]]]
+remove.sites(object = rnb.set.filtered, probelist = to_remove)
+nrow(meth(rnb.set.filtered))
+
+# Remove probes containing NA for beta values
+rnb.set.filtered <- rnb.execute.na.removal(rnb.set.filtered)$dataset
+nrow(meth(rnb.set.filtered))
+
+# Remove probes for which the beta values have low standard deviation
+rnb.set.filtered <- rnb.execute.variability.removal(rnb.set.filtered, 0.005)$dataset
+nrow(meth(rnb.set.filtered))
+
+# we remove sites with any NA or negative values
+mm = meth(rnb.set.filtered, row.names = TRUE)
+mneg = apply(mm, 1, function(x) any(x <= 0))
+mneg = is.na(mneg)
+head(mm[mneg, 1:3],10)
+rnb.set.filtered = remove.sites(object = rnb.set.filtered, probelist = mneg)
+nrow(meth(rnb.set.filtered))
+#save.rnb.set(rnb.set.filtered, "/projects/researchers/jil/projects/deNBI/20241129_WS24/analysis/rnb/rnbSet_Filtered", archive = TRUE)
+```
+
+#### Normalization
+
+We now configure a series of RnBeads package options for filtering and normalization of DNA methylation data. It specifies parameters such as SNP filtering, cross-reactivity exclusion, and the handling of missing values and coverage thresholds. Additionally, it sets up normalization methods, including background correction and method adjustment. The final command executes the predefined preprocessing steps on the filtered dataset and stores the processed data in the `rnb` object for further analysis.
+
+```{r}
+#preset some options and then run filtering/normalization with one command
+# Set filtering and normalization options using a consolidated approach
+rnb.options(filtering.whitelist = NULL)
+rnb.options(filtering.blacklist = NULL)
+rnb.options(filtering.snp = "3")
+rnb.options(filtering.cross.reactive = FALSE)
+rnb.options(filtering.greedycut = TRUE)
+rnb.options(filtering.greedycut.pvalue.threshold = 0.05)
+rnb.options(filtering.greedycut.rc.ties = "row")
+rnb.options(filtering.sex.chromosomes.removal = TRUE)
+rnb.options(filtering.missing.value.quantile = 0.8)
+rnb.options(filtering.coverage.threshold = 3)
+rnb.options(filtering.low.coverage.masking = FALSE)
+rnb.options(filtering.high.coverage.outliers = FALSE)
+rnb.options(filtering.deviation.threshold = 0)
+
+rnb.options(normalization = NULL)
+rnb.options(normalization.method = "bmiq")       #normalization method
+rnb.options(normalization.background.method = "methylumi.noob")#background removal yes/no
+rnb.options(normalization.plot.shifts = TRUE)
+
+
+
+#rnb.set.norm <- rnb.execute.normalization(rnb.set.unfiltered, method="wm.dazen", bgcorr.method="methylumi.noob")
+preprocessed = rnb.run.preprocessing(rnb.set = rnb.set.filtered, dir.reports = report.dir) 
+rnb = preprocessed$rnb.set
+```
+
+#### Inference module
+
+This block of R code performs several advanced analyses using the RnBeads package, starting with tissue deconvolution to estimate cell types via the Houseman algorithm and visualizing these estimates with a heatmap. It also evaluates immune cell content and predicts epigenetic age. The script then sets up various inference options to fine-tune the analysis parameters before running a comprehensive inference analysis. Lastly, it performs surrogate variable analysis (SVA) to adjust for potential confounders in the data, enhancing the accuracy of the results.
+
+```{r}
+# Tissue deconvolution - reference based celltype estimation using houseman algorithm
+ct <- rnb.execute.ct.estimation(rnb, cell.type.column="CellType", test.max.markers=10000, top.markers=500)
+rnb.plot.ct.heatmap(ct.obj = ct)
+ct$contributions
+
+# immune cell content
+immune.content <- rnb.execute.lump(rnb)
+
+#calculate epigenetic age
+rnb.execute.age.prediction(object = rnb)
+
+# preset some settings
+rnb.options(inference.age.prediction = TRUE)
+rnb.options(inference.age.column = "Age")
+rnb.options(inference.age.prediction.training = FALSE)
+rnb.options(inference.age.prediction.cv = FALSE)
+rnb.options(inference.immune.cells = TRUE)
+rnb.options(inference.genome.methylation = "Genome-wide methylation")
+rnb.options(inference.targets.sva = character())
+rnb.options(inference.reference.methylome.column = "CellType")
+rnb.options(inference.max.cell.type.markers = 10000)
+rnb.options(inference.top.cell.type.markers = 500)
+rnb.options(inference.sva.num.method = "leek")
+
+rnb_inference = rnb.run.inference(rnb.set = rnb, dir.reports = report.dir)
+rnb = rnb_inference$rnb.set
+
+# let's do the sva analysis as an addendum
+sva.obj <- rnb.execute.sva(rnb, cmp.cols = "Group", numSVmethod="be")
+rnb <- set.covariates.sva(rnb, sva.obj)
+
+```
+
+#### Exploratory module
+##### using RnBeads
+
+This code block initiates an exploratory analysis, a process estimated to take approximately 3 hours. The function `rnb.run.exploratory` is called to perform a comprehensive exploration of the RnBeads dataset (containg all samples), generating a detailed report. After the analysis, the dataset is saved with archival settings for future access.
+
+**Suggestion for Participants:** It's advisable to run this analysis during the evening or early morning. This ensures that the lengthy processing completes overnight or before the workshop resumes the next day, avoiding any delays in continuing with the planned activities. If there are any issues in running the analysis or if it does not complete, a processed dataset will be provided to ensure no interruption in the workshop progress.
+
+```{r}
+ #  Takes roughly 3 hours 
+rnb.run.exploratory(rnb.set = rnb, dir.reports = report.dir)
+
+# Sys.setenv("R_ZIPCMD"="/usr/bin/zip")
+# save.rnb.set(rnb, "/projects/researchers/jil/projects/deNBI/20241129_WS24/analysis/rnb/rnbSet_exploratoryAnalysis", archive = TRUE)
+
+```
+
+##### using R
+This R code block involves several steps to analyze and visualize DNA methylation data using the RnBeads package. Initially, it extracts methylation data (`mmEx`) and filters out samples labeled as "Glia" or "Neuron" to focus on other tissue samples. It then computes a correlation matrix (`sampleCorMatrix`) among these tissue samples using Pearson's method. This matrix is visualized using a heatmap, enhanced with annotations for sex and diagnosis, and colored gradients.
+
+Subsequently, the code performs Principal Component Analysis (PCA) on the transposed filtered methylation data to explore variability and patterns in the high-dimensional dataset. PCA results are plotted using ggplot2, distinguishing samples by sex and diagnosis with different colors and shapes.
+
+Finally, the code identifies and visualizes the most variable probes within the "Glia" and "Neuron" samples using another heatmap. This includes extracting methylation data for these cell types, computing variance for each probe, and then focusing on the top 10,000 most variable probes for the heatmap visualization. Annotations in the heatmap include additional details such as cell type, enhancing the interpretability of the results.
+
+```{r}
+# loading exploratory analysis 
+rnbEx <- rnb 
+mmEx = meth(rnbEx)
+
+# Let's correlate the methylomes of all tissue samples
+mmExTissue = mmEx[ , !grepl("Glia|Neuron", colnames(mmEx))]
+
+sampleCor = cor( x = mmExTissue , method =  "p")
+sampleCorMatrix = as.matrix( sampleCor )
+
+anno = data.frame(pheno(rnbEx)[ , c("Sex","Age","Diagnosis")])
+annoCol = list(Sex = c("M" = "#0570b0", "F" = "#ae017e"),
+               Diagnosis = c("CTRL" = "#f0f0f0", "AD" = "#feb24c"))
+
+colors = colorRampPalette( colors = brewer.pal(9, "OrRd"))(50)
+
+pheatmap(sampleCorMatrix,
+         clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",
+         col = colors,
+         annotation_col = anno,
+         annotation_colors = annoCol,
+         cellwidth = 10,
+         cellheight = 10
+)
+```
+
+Let's explore the high dimensional methylomes in a principle component analysis
+```{r}
+# Let's explore the high dimensional methylomes in a principle component analysis
+pcaRes <- prcomp(t(mmExTissue), center = TRUE, scale. = TRUE)
+
+pcaData <- as.data.frame(pcaRes$x)
+pcaData$SampleID = rownames(pcaData)
+pcaData = merge(x = pcaData, y = pheno(rnbEx), by = "SampleID")
+
+ggplot(pcaData, aes(x = PC1, y = PC2, color = Sex, shape = Diagnosis)) +
+  geom_point(size = 3) +
+  scale_color_manual(values = c("#ae017e", "#0570b0")) +
+  scale_shape_manual(values = c(8, 1))+
+  theme_minimal() +
+  labs(title = "PCA Plot")
+
+```
+
+Investigate the most varibale probes in the cell type samples
+```{r}
+
+mmExCell = mmEx[ , grepl("Glia|Neuron", colnames(mmEx))]
+rowVars <- apply(mmExCell, 1, var)
+
+mmMostVar = mmExCell[ order(rowVars, decreasing = T)[1:10000] , ]
+
+anno = data.frame(pheno(rnbEx)[ , c("Sex","Age","Diagnosis","CellType")])
+annoCol = list(Sex = c("M" = "#0570b0", "F" = "#ae017e"),
+               Diagnosis = c("CTRL" = "#f0f0f0", "AD" = "#feb24c"),
+               CellType = c("Glia" = "white","Neuron" = "#969696"))
+
+pheatmap(mmMostVar,
+         clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",
+         col = colors,
+         annotation_col = anno,
+         annotation_colors = annoCol,
+         show_colnames = F,
+         show_rownames = F,
+         cellwidth = 10
+         #cellheight = 10
+)
+```
+### RnBeads sets
+
+In order to save time for analysis which can take sometime hours of wait. We have already have some objects ready for you. You will have the option later on to use these objects and at the same time also create your own objects in case you have enough time at the end of each session.
+
+```{r}         
+rnbUnp <- load.rnb.set("d:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/analysis/rnbSet_Unprocessed.zip")
+
+rnbFilt <- load.rnb.set("d:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/analysis/rnbSet_Filtered.zip")
+
+rnbEx <- load.rnb.set("d:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/analysis/rnbSet_exploratoryAnalysis.zip")
+```
