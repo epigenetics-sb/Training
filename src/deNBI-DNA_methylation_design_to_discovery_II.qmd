@@ -1,0 +1,311 @@
+---
+title-block-banner-color: "#697ddd"
+title: "DNA methylation desing to discovery 2024"
+output: html_notebook
+author: Dr. Gilles Gasporoni, Dr. Thomas Hentrich, Nihit Aggarwal
+number-sections: true
+format:
+  html:
+    toc: true
+    embed-resources: true
+    toc-location: right
+    number-sections: true
+---
+
+### Intialization
+##### Reload packages and rnb sets 
+
+```{r}
+packages_to_load <- c("ggplot2","reshape2","RnBeads","data.table","pheatmap","RColorBrewer","Gostats")
+lapply(packages_to_load, require, character.only=TRUE)
+```
+
+
+```{r}
+# load your exploratory analysis rnb set from yesterday/today
+rnb <- load.rnb.set("d:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/analysis/rnbSet_exploratoryAnalysis.zip")
+```
+
+### Downstream anaylsis
+
+#### Dimensionality reduction
+```{r}
+#let's use dimensionality reduction to look at data variation
+dred.sites <- rnb.execute.dreduction(rnb)
+dred.promoters <- rnb.execute.dreduction(rnb, target = "promoters")
+
+dred <- list(sites = dred.sites, promoters = dred.promoters)
+sample.colors <- ifelse(pheno(rnb)$CellType == "Glia", "orange", "yellowgreen")
+
+dev.off()
+#plot MDS for Glia an d Neurons
+plot(dred[["sites"]]$mds$euclidean, col = sample.colors, xlab = "Dimension 1", ylab = "Dimension 2", cex = 2, pch = 19,
+     main = "MDS plot - all Sites")
+plot(dred[["sites"]]$pca$x, col = sample.colors, xlab = "PC1", ylab = "PC2", cex = 2, pch = 19,
+     main = "PCA plot - all Sites")
+
+plot(dred[["promoters"]]$pca$x, col = sample.colors, xlab = "PC1", ylab = "PC2", cex = 2, pch = 19,
+     main = "PCA plot - Promoters")
+```
+
+#### Batch Effects Assessment
+Check for batch effects by correlating PCA coordinates with known sample parameters.
+```{r}
+#check if have some batch effects by correlation PCA and known sample parameters
+# e.g. "Group" biologic samplegroups - "Type = 'sorted' vs 'unsorted'
+assoc <- rnb.execute.batcheffects(rnb, pcoordinates = dred)
+str(assoc)
+
+rnb.options(exploratory.columns=c("Group", "Type"))
+assoc.qc <- rnb.execute.batch.qc(rnb, pcoordinates=dred)
+
+```
+#### Plot Probe Type Deviation
+Visualize methylation deviation by probe types (e.g., Type I vs Type II) in a PDF file.
+```{r}
+setwd("D:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/analysis_v3/")
+probe.types <- as.character(annotation(rnb)[, "Design"])
+pdf(file = "deviationPlot_probeType.pdf", width = 11)
+deviation.plot.beta(meth(rnb), 
+                    probe.types,
+                    c.legend = c("I" = "blue", "II" = "red")
+                    )
+dev.off()
+
+```
+#### Clustering and Heatmap
+Cluster the samples based on methylation values from sites or promoters, and visualize the clustered promoters as a heatmap
+```{r}
+
+#cluster the samples based on indivudal sites or promoters
+clusterings.sites <- rnb.execute.clustering(rnb, region.type = "sites")
+clusterings.promoters <- rnb.execute.clustering(rnb, region.type = "promoters")
+
+# Get the methylation values
+X <- meth(rnb, type = "promoters")[1:100, ]
+# Convert the clustering result to a dendrogram
+# Index 7 holds euclidean distance, average linkage clustering
+cresult <- clusterings.promoters[[7]]@result
+attr(cresult, "class") <- "hclust"
+cresult <- as.dendrogram(cresult)
+
+# Save the heatmap as pdf file
+pdf(file="promoter_heatmap.pdf")
+heatmap.2(X, Rowv = TRUE, Colv = cresult, dendrogram = "both", scale = "none", trace = "none")
+dev.off()
+```
+
+### Differential analysis
+```{r}
+# if we want to compare Neuron vs Glia cells from Controls only, 
+# we will need to add a new column to pheno data to establish this comparison
+
+#first we create a dedicated sample scheme
+SortedControl <- ifelse(pheno(rnb)[, "Diagnosis"] == "CTRL" & pheno(rnb)[, "CellType"] == "Glia", "Glia_CTRL",
+                        ifelse(pheno(rnb)[, "Diagnosis"] == "CTRL" & pheno(rnb)[, "CellType"] == "Neuron", "Neuron_CTRL", NA)
+)
+
+#now we add the scheme as a new column to the phenotypic data
+rnb <- addPheno(rnb, SortedControl, "Neuron_CTRL_vs_Glia_CTRL")
+
+# Specify the sample annotation table columns for which
+# differential methylation is to be computed
+rnb.options("differential.site.test.method" = "limma") #'limma' or 'ttest'
+
+cmp.cols_sorted <- c("Neuron_CTRL_vs_Glia_CTRL", "AD_vs_CTRL_Neuron","AD_vs_CTRL_Glia")
+# Specify the region types
+reg.types <- c("genes", "promoters")
+
+# Conduct the analysis #takes 5 minutes
+diffmeth_sorted <- rnb.execute.computeDiffMeth(x = rnb, 
+                                               pheno.cols = cmp.cols_sorted, 
+                                               region.types = reg.types, 
+                                               columns.adj = "Age", 
+                                               adjust.sva = FALSE,
+                                               skip.sites = FALSE, 
+                                               adjust.celltype = FALSE)
+
+#save the results as compressed tables
+save.rnb.diffmeth(object = diffmeth_sorted, path = "D:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/analysis/rnbDiffMeth.Rdata")
+
+cmp.cols_tissue <- c("AD_vs_CTRL_FC","AD_vs_CTRL_TC")
+# Specify the region types
+reg.types <- c("genes", "promoters")
+# Conduct the analysis
+diffmeth_tissue <- rnb.execute.computeDiffMeth(x = rnb, 
+                                               pheno.cols = cmp.cols_tissue, 
+                                               region.types = reg.types, 
+                                               columns.adj = c("Age", "Sex"), 
+                                               adjust.sva = FALSE,
+                                               pheno.cols.adjust.sva = "NeuronalContent",
+                                               skip.sites = FALSE, 
+                                               adjust.celltype = TRUE)
+
+save.rnb.diffmeth(object = diffmeth_tissue, path = "/projects/researchers/jil/projects/deNBI/20241129_WS24/analysis/rnb/DifferentialAnalysis_Tissue")
+
+```
+### Differential comparisons performed with sorted samples only
+This code snippet adds a new phenotype column to classify samples into "Glia_CTRL" or "Neuron_CTRL" from control donors only. It then configures and runs a differential methylation analysis using specified comparison groups and region types, adjusting for certain covariates. Finally, it saves the resulting differential methylation results for further interpretation.
+```{r}
+#let's focus on the differential comparisons performed with sorted samples only
+#we can inspect the chosen parameters in the differential object
+str(diffmeth_sorted)
+get.comparisons(diffmeth_sorted)
+get.region.types(diffmeth_sorted)
+get.comparison.grouplabels(diffmeth_sorted)
+
+
+#select one specific comaprison
+comparison <- get.comparisons(diffmeth_sorted)[1]
+tab.sites <- get.table(object = diffmeth_sorted, comparison, "sites", return.data.frame = TRUE)
+str(tab.sites)
+
+
+```
+#### Annotation 
+This code adds detailed annotation to the differential methylation results for both CpG sites and promoter regions. It merges the results from RnBeads with external annotation sources (e.g., gene symbols, genomic regions, and ENTREZ IDs), then reorders and exports them as well-structured tables for downstream analysis. Additionally, it identifies the most frequently represented genes among the top-ranking CpG sites.
+```{r}
+#let's annotate the results
+#first we add the annotation which is delivered by RnBeads by default
+rnb.annotation.sites <- annotation(rnb, type="sites")
+difSitesAnn <- data.frame(rnb.annotation.sites, tab.sites)
+
+#but important information are missing, e.g. gene symbol or genomic region
+# we can retrieve this information from other resources
+ # e.g. Illumina.com 
+# https://emea.support.illumina.com/array/array_kits/infinium_humanmethylation450_beadchip_kit/downloads.html
+# https://bioconductor.org/packages/release/data/annotation/html/IlluminaHumanMethylation450kmanifest.html
+# We prefer this source
+# https://zwdzwd.github.io/InfiniumAnnotation
+# needs to be downloaded
+# we also provide this table on hiz-cloud
+
+#let's import that annotation
+a450 = as.data.frame(fread("d:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/450K_anno_v1.txt", sep = "\t", header = TRUE))
+
+#add columns for gene ID, region and entrez ID from this annotation to our results table
+difSitesAnn [, c("gene", "geneRegion", "entrezID")] = a450[match(rownames(difSitesAnn), a450$TargetID) , c("SYMBOL", "GROUP02", "ENTREZ_ID")]
+
+#add CpG ID as a column
+difSitesAnn$cgID = rownames(difSitesAnn)
+
+#optional: now we reorder the table based on CombinedRank value, so the best results are on top of the table
+difSitesAnn = difSitesAnn [order(difSitesAnn$combinedRank), ]
+
+#select a set of columns to be included in final result table, then export differential results with annotation
+exportColumns = c("cgID", "Chromosome", "Start", "End", "Strand", "Design", "Color", "Context", "CGI.Relation", 
+                  "mean.g1", "mean.g2", "mean.diff", "diffmeth.p.val", "diffmeth.p.adj.fdr", 
+                  "combinedRank", "gene", "geneRegion", "entrezID")
+fwrite(difSitesAnn [, exportColumns], 
+       file = paste0("d:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/DifferentialResultsSites_Annotated_", comparison, ".txt"),
+       sep = "\t", col.names = TRUE, row.names = FALSE, quote = FALSE)
+
+#which genes are most prominent in the top 1000 ranking CpGs?
+topGenes = as.data.frame(table(difSitesAnn$gene [1:1000]))
+topGenes = topGenes [order(topGenes$Freq, decreasing = TRUE), ]
+head(topGenes, 10)
+
+#we can also do this annotation with region sets, e.g. promoters
+tab.promoters <- get.table(diffmeth_sorted, comparison, "promoters", return.data.frame = TRUE)
+str(tab.promoters)
+annoPromoters = annotation(rnb,  type = "promoters")
+
+#add annotation
+difProAnn = data.frame(annoPromoters, tab.promoters)
+difProAnn$EnsemblID = rownames(difProAnn)
+
+#sort results by combined rank
+difProAnn = difProAnn[order(difProAnn$combinedRank), ]
+
+#export
+fwrite(difProAnn, 
+       file = paste0("d:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/DifferentialResultsPromoters_Annotated_", comparison, ".txt"),
+       sep = "\t", col.names = TRUE, row.names = FALSE, quote = FALSE)
+```
+#### Visualization of Differential results
+```{r}
+# let's visualize the promoter results with a volcano plot
+# use red to highlight most differential promoters
+dmrs <- get.table(object = diffmeth_sorted, comparison, "promoters")
+plot(dmrs[, "mean.mean.diff"], 
+     -log10(dmrs[, "comb.p.val"]), 
+     xlab = "mean difference", 
+     ylab = "-log10(combined p-value)", 
+     col = ifelse((dmrs[, "comb.p.val"] < 0.01 & 
+                   dmrs [, "mean.mean.diff"] > 0.2) , "red", 
+                  ifelse((dmrs[, "comb.p.val"] < 0.01 & 
+                            dmrs [, "mean.mean.diff"] < -0.2), "blue", "grey")
+                  ),
+     pch = 19,
+     main = paste0(gsub(" \\(.*", "", comparison), " - promoters"))
+
+#scatter plot
+plot(dmrs[, "mean.mean.g1"], 
+     dmrs[, "mean.mean.g2"], 
+     xlab = "mean Glia_CTRL", 
+     ylab = "mean Neuron_CTRL", 
+     col = ifelse((dmrs[, "comb.p.val"] < 0.01 & 
+                     dmrs [, "mean.mean.diff"] > 0.2) , "red", 
+                  ifelse((dmrs[, "comb.p.val"] < 0.01 & 
+                            dmrs [, "mean.mean.diff"] < -0.2), "blue", "grey")
+     ),
+     pch = 19, cex = 0.6,
+     main = paste0(gsub(" \\(.*", "", comparison), " - promoters"))
+
+########################################################################################################
+```
+### Advance analyses (Optional)
+##### GO enrichment 
+
+```{r}
+# let's perform GO enrichment analysis
+BiocManager::install(version = "3.18") 
+enrich.go <- performGoEnrichment.diffMeth(rnb, diffmeth_sorted, verbose = TRUE) #takes 30-45 minutes
+
+#result is a complex nested table so let's extract some results to get an impression about the results
+enrich.table.go <-enrich.go[["region"]][[comparison]][["BP"]][["promoters"]][["rankCut_500"]][["hypo"]]
+class(enrich.table.go)
+summary(enrich.table.go)
+
+```
+##### LOLA enrichment (locus overlap analysis)
+```{r,eval=FALSE}
+lolaDest <- tempfile()
+dir.create(lolaDest)
+lolaDirs <- downloadLolaDbs(dest = lolaDest, dbs = "LOLACore") #downloads ca 500MB
+#if download breaks with timeout error change timeout limit e.g. options(timeout=300), then try again #
+
+#perform LOLA
+enrich.lola <-performLolaEnrichment.diffMeth(rnb, diffmeth_sorted, lolaDirs[["hg19"]]) #5min
+#extract some results
+enrich.table.lola <- enrich.lola$region[[comparison]][["promoters"]]
+enrich.table.lola <- enrich.table.lola[enrich.table.lola$userSet == "rankCut_500_hyper", ]
+
+#plot results
+lolaBarPlot(enrich.lola$lolaDb, enrich.table.lola, scoreCol = "pValueLog", orderCol = "maxRnk", pvalCut = 0.05, signifCol = "pValueLog")
+lolaBoxPlotPerTarget(enrich.lola$lolaDb, enrich.table.lola, scoreCol = "pValueLog", orderCol = "maxRnk", pvalCut = 0.05, signifCol = "pValueLog")
+
+#########################################################################################################
+
+#export of rnbeads data
+rnb.options(export.to.csv = TRUE)
+rnb.run.tnt(rnb, report.dir)
+
+#########################################################################################################
+
+# Coordinates around specific locus
+chrom <- "chr2"
+start <- 177010000#112252200
+end <- 177040000#112252300
+sample.grouping <- rnb.sample.groups(rnb)[['Neuron_CTRL_vs_Glia_CTRL']]
+rnb.plot.locus.profile(rnb, chrom, start, end, grps = sample.grouping)
+
+#change grouping so inspect other groups, see all groupings by using names(rnb.sample.groups(rnb))
+sample.grouping <- rnb.sample.groups(rnb)[['AD_vs_CTRL_Neuron']]
+rnb.plot.locus.profile(rnb, chrom, start, end, grps = sample.grouping)
+
+sample.grouping <- rnb.sample.groups(rnb)[['AD_vs_CTRL_Glia']]
+rnb.plot.locus.profile(rnb, chrom, start, end, grps = sample.grouping)
+
+
+```
