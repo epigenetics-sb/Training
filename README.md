@@ -1,4 +1,3 @@
-```markdown
 # Workshop: Bioinformatic Processing of DNA Methylation Data
 
 **Location:** Saarbrücken and online (hybrid)
@@ -19,38 +18,35 @@ Participants will also gain the skills needed to apply these methods to their ow
 - Preparation of the analysis environment (RStudio and RnBeads)  
 - Processing of array-based methylation data:
   - Data import  
-    - Quality control  
-      - Normalization  
-        - Generation of methylation matrices  
-	- Exploratory data analysis using `ggplot2`  
-	- Differential methylation analysis:
-	  - Sites and regions  
-	    - Cell types  
-	      - Disease-specific effects  
-	      - Understanding cell-type- and disease-specific methylation differences  
-	      - Reference-based deconvolution approaches  
+  - Quality control  
+  - Normalization  
+  - Generation of methylation matrices  
+- Exploratory data analysis using `ggplot2`  
+- Differential methylation analysis:
+  - Sites and regions  
+  - Cell types  
+  - Disease-specific effects  
+- Understanding cell-type- and disease-specific methylation differences  
+- Reference-based deconvolution approaches  
 
-	      ## Prerequisites
-	      - Basic knowledge of **R programming**
-	      - Laptop with at least **4 GB RAM**  
-	        - Additional information on required packages will be provided in advance
+## Prerequisites
+- Basic knowledge of **R programming**
+- Laptop with at least **4 GB RAM**  
+- Additional information on required packages will be provided in advance
 
-		## Tools and Keywords
-		**Keywords:** DNA methylation, methylation arrays, RnBeads, neurodegenerative disease, deconvolution  
-		**Tools:** R, RStudio, RnBeads
+## Tools and Keywords
+**Keywords:** DNA methylation, methylation arrays, RnBeads, neurodegenerative disease, deconvolution  
+**Tools:** R, RStudio, RnBeads
 
-		## Contact
-		**Nihit Aggarwal**  
-		Email: nihit.aggarwal@uni-saarland.de
+## Contact
+**Nihit Aggarwal**  
+Email: nihit.aggarwal@uni-saarland.de
 
-		## Registration
-		Interested participants can register by sending an email to  
-		**nihit.aggarwal@uni-saarland.de**  
-		with the following information:
+## Registration
+Interested participants can register by sending an email to **nihit.aggarwal@uni-saarland.de** with the following information:
+- Name  
+- E-mail  
+- Specialization / background  
+- University / institute  
 
-		- Name  
-		- E-mail  
-		- Specialization / background  
-		- University / institute  
-		```
 
