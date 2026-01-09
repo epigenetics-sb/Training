@@ -1,5 +1,5 @@
-# Workshop: Bioinformatic Processing of DNA Methylation Data
-
+# de.NBI-Workshop: DNA Methylation: Design to Discovery
+[Website](URLhttps://epigenetics-sb.github.io/Training/)
 **Location:** Saarbrücken and online (hybrid)
 
 ## Overview
@@ -33,6 +33,8 @@ Participants will also gain the skills needed to apply these methods to their ow
 - Basic knowledge of **R programming**
 - Laptop with at least **4 GB RAM**  
 - Additional information on required packages will be provided in advance
+- Data 
+	- You can download the data before hand from [here](https://epigenetics-sb.github.io/Training/)
 
 ## Tools and Keywords
 **Keywords:** DNA methylation, methylation arrays, RnBeads, neurodegenerative disease, deconvolution  
