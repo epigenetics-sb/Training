@@ -1,5 +1,5 @@
 # de.NBI-Workshop: DNA Methylation: Design to Discovery
-[Website](https://epigenetics-sb.github.io/Training/)
+[Workshop page](https://epigenetics-sb.github.io/Training/)
 
 [Course website](https://www.denbi.de/training-courses-2026/1973-dna-methylation-design-to-discovery-2026)
 
