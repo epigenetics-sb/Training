@@ -5,121 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DNA Methylation Design to Discovery 2026</title>
 
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            background-color: #f9fafb;
-            margin: 0;
-            padding: 40px 20px;
-            color: #2d2d2d;
-            line-height: 1.6;
-        }
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-        .container {
-            max-width: 700px;
-            margin: auto;
-            background: #ffffff;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
-
-        h1 {
-            text-align: center;
-            color: #1f5fbf;
-            margin-bottom: 10px;
-        }
-
-        h2 {
-            color: #333;
-            margin-top: 35px;
-            margin-bottom: 15px;
-            font-size: 1.2em;
-        }
-
-        .links {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-        }
-
-        a.button {
-            display: inline-block;
-            padding: 12px 18px;
-            background-color: #f5f7fa;
-            border: 1px solid #dcdfe3;
-            border-radius: 6px;
-            text-decoration: none;
-            color: #1f5fbf;
-            font-weight: 500;
-            transition: all 0.2s ease-in-out;
-        }
-
-        a.button:hover {
-            background-color: #eaf1ff;
-            border-color: #1f5fbf;
-        }
-
-        .subtitle {
-            text-align: center;
-            color: #555;
-            margin-bottom: 30px;
-        }
-
-        .note {
-            margin-top: 10px;
-            font-size: 0.9em;
-            color: #555;
-        }
-    </style>
+    <!-- Main Styles -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body>
     <div class="container">
-        <h1>de.NBI – DNA Methylation<br>Design to Discovery 2026</h1>
-        <p class="subtitle">Workshop materials and resources</p>
+        <header>
+            <h1>de.NBI – DNA Methylation<br>Design to Discovery 2026</h1>
+            <p>Workshop materials, schedules, and resources</p>
+        </header>
 
-        <div class="links">
-            <a class="button" href="https://www.denbi.de/training-courses-2026/1973-dna-methylation-design-to-discovery-2026">
-                Workshop Details
-            </a>
-            <a class="button" href="docs/schedule.html">
-                Workshop Schedule
-            </a>
-        </div>
+        <section>
+            <h2>General Information</h2>
+            <div class="links">
+                <a class="button" href="https://www.denbi.de/training-courses-2026/1973-dna-methylation-design-to-discovery-2026">
+                    <i class="fa-solid fa-globe"></i>
+                    Workshop Details
+                </a>
+                <a class="button" href="docs/schedule.html">
+                    <i class="fa-solid fa-calendar-days"></i>
+                    Workshop Schedule
+                </a>
+            </div>
+        </section>
 
-        <h2>Resources</h2>
-        <div class="links">
-            <a class="button" href="https://cloud.hiz-saarland.de/s/9Fr3qaForW9sKPD">
-                HIZ Cloud
-            </a>
-            <a class="button" href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE66351">
-                GEO Dataset (GSE66351)
-            </a>
-            <a class="button" href="https://ftp.ncbi.nlm.nih.gov/geo/series/GSE66nnn/GSE66351/suppl/GSE66351_RAW.tar">
-                Download RAW Data
-            </a>
-        </div>
+        <section>
+            <h2>Resources</h2>
+            <div class="links">
+                <a class="button" href="https://cloud.hiz-saarland.de/s/9Fr3qaForW9sKPD">
+                    <i class="fa-solid fa-cloud"></i>
+                    HIZ Cloud
+                </a>
+                <a class="button" href="https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE66351">
+                    <i class="fa-solid fa-database"></i>
+                    GEO Dataset (GSE66351)
+                </a>
+                <a class="button" href="https://ftp.ncbi.nlm.nih.gov/geo/series/GSE66nnn/GSE66351/suppl/GSE66351_RAW.tar">
+                    <i class="fa-solid fa-download"></i>
+                    Download RAW Data
+                </a>
+            </div>
+        </section>
 
-        <h2>Day I</h2>
-        <div class="links">
-            <a class="button" href="src/deNBI-DNA_methylation_design_to_discovery.nb.html">
-                R Markdown HTML Report
-            </a>
-            <a class="button" href="https://github.com/epigenetics-sb/Training/tree/main/src/">
-                Markdown Source Files
-            </a>
-        </div>
+        <section>
+            <h2>Day I</h2>
+            <div class="links">
+                <a class="button" href="src/deNBI-DNA_methylation_design_to_discovery.nb.html">
+                    <i class="fa-solid fa-file-code"></i>
+                    R Markdown HTML Report
+                </a>
+                <a class="button" href="https://github.com/epigenetics-sb/Training/tree/main/src/">
+                    <i class="fa-brands fa-github"></i>
+                    Markdown Source Files
+                </a>
+            </div>
+        </section>
 
-        <h2>Day II</h2>
-        <div class="links">
-            <a class="button" href="src/deNBI-DNA_methylation_design_to_discovery_II.nb.html">
-                R Markdown HTML Report
-            </a>
-            <a class="button" href="https://github.com/epigenetics-sb/Training/tree/main/src/">
-                Markdown Source Files
-            </a>
-        </div>
+        <section>
+            <h2>Day II</h2>
+            <div class="links">
+                <a class="button" href="src/deNBI-DNA_methylation_design_to_discovery_II.nb.html">
+                    <i class="fa-solid fa-file-code"></i>
+                    R Markdown HTML Report
+                </a>
+                <a class="button" href="https://github.com/epigenetics-sb/Training/tree/main/src/">
+                    <i class="fa-brands fa-github"></i>
+                    Markdown Source Files
+                </a>
+            </div>
+        </section>
+
+        <footer>
+            <p>
+                Contact: <strong>Nihit Aggarwal</strong> ·
+                <a href="mailto:nihit.aggarwal@uni-saarland.de">
+                    nihit.aggarwal@uni-saarland.de
+                </a>
+            </p>
+            <p>Saarbrücken & Online · de.NBI Training 2026</p>
+        </footer>
     </div>
 </body>
 </html>
