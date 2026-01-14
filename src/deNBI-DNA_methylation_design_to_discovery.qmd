@@ -1,6 +1,6 @@
 ---
 title-block-banner-color: "#697ddd"
-title: "DNA methylation desing to discovery 2024"
+title: "DNA methylation desing to discovery 2026"
 output: html_notebook
 author: Dr. Gilles Gasparoni, Lukas Laufer , Nihit Aggarwal
 number-sections: true
