@@ -1,8 +1,8 @@
 ---
 title-block-banner-color: "#697ddd"
-title: "DNA methylation desing to discovery 2024"
+title: "DNA methylation desing to discovery 2026"
 output: html_notebook
-author: Dr. Gilles Gasporoni, Dr. Thomas Hentrich, Nihit Aggarwal
+author: Dr. Gilles Gasparoni, Lukas Laufer, Nihit Aggarwal
 number-sections: true
 format:
   html:
@@ -16,7 +16,7 @@ format:
 ##### Reload packages and rnb sets 
 
 ```{r}
-packages_to_load <- c("ggplot2","reshape2","RnBeads","data.table","pheatmap","RColorBrewer","Gostats")
+packages_to_load <- c("ggplot2","reshape2","RnBeads","data.table","pheatmap","RColorBrewer","GOstats")
 lapply(packages_to_load, require, character.only=TRUE)
 ```
 
@@ -37,7 +37,6 @@ dred.promoters <- rnb.execute.dreduction(rnb, target = "promoters")
 dred <- list(sites = dred.sites, promoters = dred.promoters)
 sample.colors <- ifelse(pheno(rnb)$CellType == "Glia", "orange", "yellowgreen")
 
-dev.off()
 #plot MDS for Glia an d Neurons
 plot(dred[["sites"]]$mds$euclidean, col = sample.colors, xlab = "Dimension 1", ylab = "Dimension 2", cex = 2, pch = 19,
      main = "MDS plot - all Sites")
@@ -63,7 +62,7 @@ assoc.qc <- rnb.execute.batch.qc(rnb, pcoordinates=dred)
 #### Plot Probe Type Deviation
 Visualize methylation deviation by probe types (e.g., Type I vs Type II) in a PDF file.
 ```{r}
-setwd("D:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/analysis_v3/")
+setwd("D:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/")
 probe.types <- as.character(annotation(rnb)[, "Design"])
 pdf(file = "deviationPlot_probeType.pdf", width = 11)
 deviation.plot.beta(meth(rnb), 
@@ -76,6 +75,7 @@ dev.off()
 #### Clustering and Heatmap
 Cluster the samples based on methylation values from sites or promoters, and visualize the clustered promoters as a heatmap
 ```{r}
+Sys.setenv("R_ZIPCMD"="")
 
 #cluster the samples based on indivudal sites or promoters
 clusterings.sites <- rnb.execute.clustering(rnb, region.type = "sites")
@@ -141,7 +141,7 @@ diffmeth_tissue <- rnb.execute.computeDiffMeth(x = rnb,
                                                skip.sites = FALSE, 
                                                adjust.celltype = TRUE)
 
-save.rnb.diffmeth(object = diffmeth_tissue, path = "/projects/researchers/jil/projects/deNBI/20241129_WS24/analysis/rnb/DifferentialAnalysis_Tissue")
+save.rnb.diffmeth(object = diffmeth_tissue, path = "D:/Work/Epigenetics/Workshops/2024_deNBI-DNA_methylation_design_to_discovery/analysis/DifferentialAnalysis_Tissue")
 
 ```
 ### Differential comparisons performed with sorted samples only
@@ -263,13 +263,15 @@ BiocManager::install(version = "3.18")
 enrich.go <- performGoEnrichment.diffMeth(rnb, diffmeth_sorted, verbose = TRUE) #takes 30-45 minutes
 
 #result is a complex nested table so let's extract some results to get an impression about the results
-enrich.table.go <-enrich.go[["region"]][[comparison]][["BP"]][["promoters"]][["rankCut_500"]][["hypo"]]
+enrich.table.go <-enrich.go[["region"]][[comparison]][["BP"]][["promoters"]][["rankCut_500"]][["hyper"]]
 class(enrich.table.go)
 summary(enrich.table.go)
 
 ```
 ##### LOLA enrichment (locus overlap analysis)
 ```{r,eval=FALSE}
+library(LOLA)
+library(simpleCache)
 lolaDest <- tempfile()
 dir.create(lolaDest)
 lolaDirs <- downloadLolaDbs(dest = lolaDest, dbs = "LOLACore") #downloads ca 500MB
